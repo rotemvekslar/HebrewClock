@@ -17,7 +17,7 @@ const int   daylightOffset_sec = 0;
 
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 480;
-const int SRC_IMG_H = 141; 
+const int SRC_IMG_H = 165; 
 const int Y_SPACING = SRC_IMG_H - 10; 
 const int GAP = 20;                   
 
@@ -169,7 +169,10 @@ epaper.fillScreen(White);
                 _addWord(bmp, tempSize); 
                 addWord(epd_bitmap_and_mins); 
             }
-            else if (mm >= 11 && mm <= 19) {
+            else if (mm == 12) { addWord(epd_bitmap_and_two_teen); addWord(epd_bitmap_ten_teen); addWord(epd_bitmap_and_mins); }
+            else if (mm == 13) { addWord(epd_bitmap_and_three_teen); addWord(epd_bitmap_ten_teen); addWord(epd_bitmap_and_mins); }
+            else if (mm == 19) { addWord(epd_bitmap_and_nine_teen); addWord(epd_bitmap_ten_teen); addWord(epd_bitmap_and_mins); }
+            else if (mm >= 11 && mm <= 18) {
                 const unsigned char* bmp = getAndOnesBitmap(mm % 10, tempSize);
                 _addWord(bmp, tempSize);
                 addWord(epd_bitmap_ten_teen);
@@ -204,6 +207,7 @@ epaper.fillScreen(White);
     else if (hh >= 18 && hh < 22) addWord(epd_bitmap_in_the_evening);
     else if (hh >= 22 || hh < 6) addWord(epd_bitmap_at_night);
 
+    
     renderAllWords();
     epaper.update();
 }
