@@ -1,19 +1,11 @@
 #include <WiFi.h>
 #include "time.h"
-#include <TFT_eSPI.h> 
 #include <SPI.h>
-#include "driver.h" 
+#include <GxEPD2_BW.h> 
 #include "words.h"
 #include "arduino_private.h"
 const char* ssid     = SECRET_SSID;
 const char* password = SECRET_PASS;
-
-#define White 0xFF
-#define Black 0x00
-
-const char* ntpServer = "pool.ntp.org";
-const long  gmtOffset_sec = 7200;      
-const int   daylightOffset_sec = 0; 
 
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 480;
@@ -22,7 +14,9 @@ const int Y_SPACING = SRC_IMG_H - 10;
 const int GAP = 20;                   
 
 
-EPaper epaper = EPaper(); 
+// Initialize the 7.5 inch UC8179 E-Ink Display via GxEPD2
+GxEPD2_BW<GxEPD2_750_GDEY075T7, GxEPD2_750_GDEY075T7::HEIGHT> display(GxEPD2_750_GDEY075T7(/*CS=*/ D1, /*DC=*/ D3, /*RST=*/ D0, /*BUSY=*/ D2));
+
 uint8_t hh, mm;
 
 const unsigned char* all_words[15];
@@ -48,8 +42,7 @@ const unsigned char* getHourBitmap(uint8_t hour, size_t &outSize);
 const unsigned char* getToHourBitmap(uint8_t hour, size_t &outSize);
 const unsigned char* getAndOnesBitmap(uint8_t units, size_t &outSize);
 
-void updateClockDisplay();
-void runDemoMode();
+void updateClockDisplay(bool fullRefresh = false);
 void updateTimeAndDisplay();
 void renderAllWords();
 
@@ -73,9 +66,9 @@ void setup() {
     hh = timeinfo.tm_hour;
     mm = timeinfo.tm_min;
 
-    epaper.begin();
-    epaper.setRotation(0); 
-    updateClockDisplay();
+    display.init(115200, true, 2, false); 
+    display.setRotation(0); 
+    updateClockDisplay(true);
 }
 
 void loop() {
@@ -86,10 +79,12 @@ void loop() {
         if (timeinfo.tm_min != lastMin) {
             hh = timeinfo.tm_hour;
             mm = timeinfo.tm_min;
+            // We run a Full Refresh just once per hour (at XX:00) to keep the E-Ink chemically healthy.
+            bool fullRefresh = (lastMin == -1 || mm == 0); 
             lastMin = mm;
             
             Serial.printf("Real Time Update: %02d:%02d\n", hh, mm);
-            updateClockDisplay();
+            updateClockDisplay(fullRefresh);
         }
     }
     delay(1000);
@@ -112,22 +107,22 @@ void renderAllWords() {
             int totalRowWidth = w1 + w2 + GAP;
             int start_x = (SCREEN_WIDTH - totalRowWidth) / 2;
             
-            epaper.drawBitmap(start_x + w2 + GAP, current_y, all_words[i], w1, SRC_IMG_H, Black);
-            epaper.drawBitmap(start_x, current_y, all_words[i+1], w2, SRC_IMG_H, Black);
+            display.drawBitmap(start_x + w2 + GAP, current_y, all_words[i], w1, SRC_IMG_H, GxEPD_BLACK);
+            display.drawBitmap(start_x, current_y, all_words[i+1], w2, SRC_IMG_H, GxEPD_BLACK);
             i += 2;
         } 
         else {
             int w = calculateWidth(i);
             int start_x = (SCREEN_WIDTH - w) / 2;
-            epaper.drawBitmap(start_x, current_y, all_words[i], w, SRC_IMG_H, Black);
+            display.drawBitmap(start_x, current_y, all_words[i], w, SRC_IMG_H, GxEPD_BLACK);
             i += 1;
         }
         current_y += Y_SPACING;
     }
 }
 
-void updateClockDisplay() {
-epaper.fillScreen(White);
+void updateClockDisplay(bool fullRefresh) {
+    display.fillScreen(GxEPD_WHITE);
     total_word_count = 0; 
     size_t tempSize;
 
@@ -209,7 +204,10 @@ epaper.fillScreen(White);
 
     
     renderAllWords();
-    epaper.update();
+    // GxEPD2 handles all waveform math natively! 
+    // false = Full Refresh (Black/White flash)
+    // true = Fast Partial Refresh (Temperature compensated anti-ghosting)
+    display.display(!fullRefresh); 
 }
 
 
@@ -264,5 +262,5 @@ void updateTimeAndDisplay() {
     struct tm timeinfo;
     if (!getLocalTime(&timeinfo)) return;
     hh = timeinfo.tm_hour; mm = timeinfo.tm_min;
-    updateClockDisplay();
+    updateClockDisplay(true);
 }

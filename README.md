@@ -11,6 +11,7 @@ A minimalist, high-contrast desk clock based on **E-Ink** technology and the **X
 * **Smart NTP Sync:** Automatically fetches precision time from Google/NTP servers.
 * **Hebrew Time Logic:** Full support for complex Hebrew time structures.
 * **Auto-Timezone Handling:** Built-in support for Israel Standard Time (IST) and Daylight Time (IDT).
+* **Anti-Ghosting Graphics:** Utilizes GxEPD2's temperature-compensated fast partial updates for trace-free minute ticks without annoying screen flashes! 
 * **Dynamic Layout Engine:** Real-time calculation and centering of Hebrew text.
 
 ## 🙏 Credits & Inspiration
@@ -46,6 +47,7 @@ Follow these steps to get your clock running:
    ```cpp
    #define SECRET_SSID "Your_WiFi_Name"
    #define SECRET_PASS "Your_WiFi_Password"
+   ```
    
 ## 📜 License
 This project is licensed under the **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)**. 
