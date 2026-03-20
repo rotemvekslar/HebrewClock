@@ -4,6 +4,8 @@
 #include <GxEPD2_BW.h> 
 #include "words.h"
 #include "arduino_private.h"
+#include <esp_sleep.h>
+
 const char* ssid     = SECRET_SSID;
 const char* password = SECRET_PASS;
 
@@ -45,24 +47,55 @@ const unsigned char* getAndOnesBitmap(uint8_t units, size_t &outSize);
 void updateClockDisplay(bool fullRefresh = false);
 void updateTimeAndDisplay();
 void renderAllWords();
+void sleepUntilNextMinute(int current_second);
+
+void syncNTP() {
+    Serial.print("Connecting to WiFi for NTP sync");
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
+    int retries = 0;
+    while (WiFi.status() != WL_CONNECTED && retries < 20) {
+        delay(500);
+        Serial.print(".");
+        retries++;
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("\nSyncing time...");
+        configTzTime("IST-2IDT,M3.5.5/2,M10.5.0/2", "pool.ntp.org", "time.google.com");
+        struct tm timeinfo;
+        while (!getLocalTime(&timeinfo) || timeinfo.tm_year < (2026 - 1900)) {
+            delay(500);
+        }
+    }
+    
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+    Serial.println("WiFi turned OFF to save battery.");
+}
+
+void sleepUntilNextMinute(int current_second) {
+    int seconds_remaining = 60 - current_second;
+    
+    // Safety feature: Do not go into light sleep during the first 60 seconds after booting.
+    // This gives you a generous 1-minute window to easily upload new code without MASHING the reset button!
+    if (millis() < 60000) {
+        delay(seconds_remaining * 1000);
+    } else {
+        // Intelligent Battery Saver: Puts the CPU silicon into Light Sleep.
+        // This drops power from ~30mA to less than ~1mA between minute ticks.
+        esp_sleep_enable_timer_wakeup(seconds_remaining * 1000000ULL);
+        esp_light_sleep_start();
+    }
+}
 
 void setup() {
     Serial.begin(115200);
     
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-
-    configTzTime("IST-2IDT,M3.5.5/2,M10.5.0/2", "pool.ntp.org", "time.google.com");
+    syncNTP();
 
     struct tm timeinfo;
-    while (!getLocalTime(&timeinfo) || timeinfo.tm_year < (2026 - 1900)) {
-        delay(500);
-        Serial.print(".");
-    }
-
+    getLocalTime(&timeinfo);
     hh = timeinfo.tm_hour;
     mm = timeinfo.tm_min;
 
@@ -75,7 +108,15 @@ void loop() {
     struct tm timeinfo;
     if (getLocalTime(&timeinfo)) {
         static int lastMin = -1;
+        static int lastSyncDay = -1;
         
+        // Re-sync everyday at 3 AM to fix any crystal drifting
+        if (timeinfo.tm_hour == 3 && timeinfo.tm_mday != lastSyncDay) {
+            syncNTP();
+            lastSyncDay = timeinfo.tm_mday;
+            getLocalTime(&timeinfo); // Update time immediately after sync
+        }
+
         if (timeinfo.tm_min != lastMin) {
             hh = timeinfo.tm_hour;
             mm = timeinfo.tm_min;
@@ -86,8 +127,12 @@ void loop() {
             Serial.printf("Real Time Update: %02d:%02d\n", hh, mm);
             updateClockDisplay(fullRefresh);
         }
+        
+        sleepUntilNextMinute(timeinfo.tm_sec);
+    } else {
+        // If getting time failed for some reason, just retry in 1 second
+        delay(1000);
     }
-    delay(1000);
 }
 
 void renderAllWords() {
@@ -204,9 +249,6 @@ void updateClockDisplay(bool fullRefresh) {
 
     
     renderAllWords();
-    // GxEPD2 handles all waveform math natively! 
-    // false = Full Refresh (Black/White flash)
-    // true = Fast Partial Refresh (Temperature compensated anti-ghosting)
     display.display(!fullRefresh); 
 }
 

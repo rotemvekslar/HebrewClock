@@ -12,6 +12,7 @@ A minimalist, high-contrast desk clock based on **E-Ink** technology and the **X
 * **Hebrew Time Logic:** Full support for complex Hebrew time structures.
 * **Auto-Timezone Handling:** Built-in support for Israel Standard Time (IST) and Daylight Time (IDT).
 * **Anti-Ghosting Graphics:** Utilizes GxEPD2's temperature-compensated fast partial updates for trace-free minute ticks without annoying screen flashes! 
+* **Battery Optimized:** Advanced power management including WiFi-offboarding and ESP32 Light Sleep, dropping power consumption by ~95% between updates.
 * **Dynamic Layout Engine:** Real-time calculation and centering of Hebrew text.
 
 ## 🙏 Credits & Inspiration
@@ -48,6 +49,10 @@ Follow these steps to get your clock running:
    #define SECRET_SSID "Your_WiFi_Name"
    #define SECRET_PASS "Your_WiFi_Password"
    ```
+
+### 5. Uploading New Code (Battery Safety Window)
+Because the clock uses **Light Sleep** to save battery, the USB port "disappears" when it's sleeping.
+* Press the physical **Reset (R)** button on the board. The clock will stay "awake" for **60 seconds** before falling back into sleep mode. Upload your code during this 1-minute window.
    
 ## 📜 License
 This project is licensed under the **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)**. 
