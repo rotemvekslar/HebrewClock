@@ -2,6 +2,7 @@
 #include "src/power.h"
 #include "src/display.h"
 #include "src/clock/clock_logic.h"
+#include "src/time_sync.h"
 #include "arduino_private.h"
 
 const char* ssid     = SECRET_SSID;
@@ -32,13 +33,8 @@ void loop() {
     struct tm timeinfo;
     if (getLocalTime(&timeinfo)) {
         static int lastMin = -1;
-        static int lastSyncDay = -1;
         
-        if (timeinfo.tm_hour == 3 && timeinfo.tm_mday != lastSyncDay) {
-            network.syncNTP(ssid, password);
-            lastSyncDay = timeinfo.tm_mday;
-            getLocalTime(&timeinfo);
-        }
+        timeSync.syncPeriodically(timeinfo, ssid, password);
 
         if (timeinfo.tm_min != lastMin) {
             hh = timeinfo.tm_hour;

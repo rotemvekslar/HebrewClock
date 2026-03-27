@@ -25,17 +25,17 @@ Follow these steps to get your clock running:
 
 ### 1. Set Up Arduino IDE
 1. Download and install [Arduino IDE](https://www.arduino.cc/en/software).
-2. **Add ESP32 Support:** Go to `File` > `Preferences`. In "Additional Boards Manager URLs", paste:
+2. **Add ESP32 Support:** Go to `File` > `Preferences` (or `Arduino IDE` > `Settings` on macOS). In "Additional Boards Manager URLs", paste:
    `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`
-3. Go to `Tools` > `Board` > `Boards Manager`, search for **ESP32**, and install the package.
+3. Go to `Tools` > `Board` > `Boards Manager`, search for **esp32**, and install the package from Espressif Systems.
 4. **Install Libraries:** Go to `Sketch` > `Include Library` > `Manage Libraries` and install:
    * **GxEPD2** (by Jean-Marc Zingg)
    * **Adafruit GFX Library**
 
 ### 2. Connect the Board
-1. Use a high-quality USB-C cable to connect your **XIAO ESP32-C3** to your computer.
-2. In Arduino IDE, go to `Tools` > `Port` and select the port corresponding to your board.
-3. Under `Tools` > `Board`, select **Seeed Studio XIAO ESP32-C3**.
+1. Use a high-quality (data-capable) USB-C cable to connect your **XIAO ESP32-C3** to your computer.
+2. In Arduino IDE, go to `Tools` > `Port` and select the appropriate serial port for your connected board.
+3. Go to `Tools` > `Board` > `esp32` and select **Seeed Studio XIAO ESP32C3**.
 
 ### 3. Code
 1. Clone or download this repository to your local machine.
@@ -51,8 +51,9 @@ Follow these steps to get your clock running:
    ```
 
 ### 5. Uploading New Code (Battery Safety Window)
-Because the clock uses **Light Sleep** to save battery, the USB port "disappears" when it's sleeping.
-* Press the physical **Reset (R)** button on the board. The clock will stay "awake" for **60 seconds** before falling back into sleep mode. Upload your code during this 1-minute window.
+Because the clock uses **Light Sleep** to save battery, the USB port "disappears" when it is sleeping.
+1. Click the **Upload** button in the Arduino IDE.
+2. Press the physical **Reset (R)** button on the board. The clock will stay "awake" for **60 seconds** before falling back into sleep mode. This gives you a 1-minute window to successfully upload your code.
    
 ## 📜 License
 This project is licensed under the **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)**. 
