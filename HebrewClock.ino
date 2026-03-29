@@ -1,32 +1,40 @@
+#include "src/system.h"
 #include "src/network.h"
 #include "src/power.h"
 #include "src/display.h"
 #include "src/clock/clock_logic.h"
 #include "src/time_sync.h"
-#include "arduino_private.h"
-
-const char* ssid     = SECRET_SSID;
-const char* password = SECRET_PASS;
 
 uint8_t hh, mm;
 
 void setup() {
     Serial.begin(115200);
+    delay(1000); 
     
-    network.syncNTP(ssid, password);
+    config.begin();
+    // Initialize hardware and perform a full screen wipe
+    display.begin();
 
-    struct tm timeinfo;
-    getLocalTime(&timeinfo);
-    hh = timeinfo.tm_hour;
-    mm = timeinfo.tm_min;
+    sys.handleFactoryReset();
+    
+    if (!network.connectWiFi()) {
+        network.startSetupMode();
+    }
 
-    display.epaper.init(115200, true, 2, false); 
-    display.epaper.setRotation(0); 
-    timeLogic.updateClockDisplay(true);
+    network.syncNTP();
 
-    // Safety feature: Do not go into light sleep during the first 60 seconds after booting.
-    // This gives you a generous 1-minute window to easily upload new code without MASHING the reset button!
-    delay(60000);
+    // Show settings summary with a 60-second countdown (Fast partial updates)
+    // This loop also saves time to reupload new code in the next 60 seconds - do not delete it!
+    for (int seconds = 60; seconds >= 0; seconds -= 5) {
+        String msg = sys.getSettingsSummary() + "\n\nClock starting in: " + String(seconds) + "s";
+        display.showStatusMessage(msg.c_str()); 
+        if (seconds > 0) delay(5000);
+    }
+
+    // Explicitly wipe the screen one last time to remove ghosting
+    display.fullRefresh();
+
+
 }
 
 void loop() {
@@ -34,7 +42,7 @@ void loop() {
     if (getLocalTime(&timeinfo)) {
         static int lastMin = -1;
         
-        timeSync.syncPeriodically(timeinfo, ssid, password);
+        timeSync.syncPeriodically(timeinfo);
 
         if (timeinfo.tm_min != lastMin) {
             hh = timeinfo.tm_hour;

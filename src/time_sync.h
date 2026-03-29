@@ -5,11 +5,11 @@
 #include "network.h"
 
 struct TimeSyncModule {
-    void syncPeriodically(struct tm& timeinfo, const char* ssid, const char* password) {
+    void syncPeriodically(struct tm& timeinfo) {
         static int lastSyncHour = -1;
         
         if (timeinfo.tm_hour % 6 == 0 && timeinfo.tm_hour != lastSyncHour) {
-            network.syncNTP(ssid, password);
+            network.syncNTP();
             lastSyncHour = timeinfo.tm_hour;
             getLocalTime(&timeinfo); // Update timeinfo reference after sync
         }

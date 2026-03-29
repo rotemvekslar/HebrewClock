@@ -1,6 +1,7 @@
 #pragma once
 
 #include <GxEPD2_BW.h>
+#include <Arduino.h>
 
 struct DisplayModule {
 
@@ -60,6 +61,59 @@ struct DisplayModule {
             current_y += Y_SPACING;
         }
     }
+
+    void begin() {
+        // Initial setup and full screen wipe
+        epaper.init(115200, true, 2, false);
+        epaper.setRotation(0);
+        epaper.fillScreen(GxEPD_WHITE);
+    }
+
+    void fullRefresh() {
+        epaper.display(false);
+    }
+
+    void showStatusMessage(const char* msg) {
+        // showStatusMessage now focuses purely on "Fast Updates" (Partial Refresh)
+        epaper.fillScreen(GxEPD_WHITE);
+        epaper.setTextColor(GxEPD_BLACK);
+        epaper.setTextSize(3); 
+        
+        String message = String(msg);
+        int startIdx = 0;
+        int endIdx = message.indexOf('\n');
+        
+        int lineCount = 1;
+        int tempIdx = message.indexOf('\n');
+        while (tempIdx != -1) {
+            lineCount++;
+            tempIdx = message.indexOf('\n', tempIdx + 1);
+        }
+        
+        int lineHeight = 30; 
+        int totalH = lineCount * lineHeight;
+        int currentY = (SCREEN_HEIGHT - totalH) / 2;
+
+        while (true) {
+            String line = (endIdx == -1) ? message.substring(startIdx) : message.substring(startIdx, endIdx);
+            
+            int16_t x1, y1;
+            uint16_t w, h;
+            epaper.getTextBounds(line.c_str(), 0, 0, &x1, &y1, &w, &h);
+            
+            epaper.setCursor((SCREEN_WIDTH - w) / 2, currentY + h);
+            epaper.print(line);
+            
+            if (endIdx == -1) break;
+            startIdx = endIdx + 1;
+            endIdx = message.indexOf('\n', startIdx);
+            currentY += lineHeight;
+        }
+        
+        epaper.display(true); // Always partial for speed
+    }
+
+
 
 };
 

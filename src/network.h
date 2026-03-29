@@ -1,29 +1,74 @@
 #pragma once
 
+#include <WiFiManager.h>
 #include <WiFi.h>
 #include <Arduino.h>
+#include "config.h"
+#include "display.h"
 #include "time.h"
 
 struct NetworkModule {
 
-    bool connectWiFi(const char* ssid, const char* password) {
-        Serial.print("Connecting to WiFi");
-        WiFi.mode(WIFI_STA);
-        WiFi.begin(ssid, password);
-        int retries = 0;
-        while (WiFi.status() != WL_CONNECTED && retries < 20) {
-            delay(500);
-            Serial.print(".");
-            retries++;
-        }
-        
-        if (WiFi.status() == WL_CONNECTED) {
-            Serial.println("\nWiFi Connected!");
+    const char* portalSSID = "HebrewClock-Setup";
+    String lastSSID = "Not Connected";
+
+
+    bool connectWiFi() {
+        WiFiManager wm;
+        // Don't start a portal during a connection attempt
+        wm.setEnableConfigPortal(false);
+        wm.setConnectTimeout(15); // Try for 15 seconds
+
+        Serial.println("Attempting WiFi Connection...");
+
+        if (wm.autoConnect(portalSSID)) {
+            lastSSID = WiFi.SSID();
+            Serial.println("WiFi Connected Successfully!");
             return true;
         } else {
-            Serial.println("\nError: Could not connect to WiFi.");
+
+            Serial.println("WiFi Connection Failed. Portal may be required.");
             return false;
         }
+    }
+
+    void startSetupMode() {
+        WiFiManager wm;
+        
+        // 1. Prepare custom input boxes
+        WiFiManagerParameter custom_ntp("ntp", "NTP Server", config.ntpServer.c_str(), 40);
+        WiFiManagerParameter custom_tz("tz", "Timezone Offset", config.timezone.c_str(), 40);
+        
+        // 2. Set up the instruction screen callback using a lambda
+        wm.setAPCallback([this](WiFiManager *myWM) {
+            Serial.println("Entered Configuration Mode");
+            String msg = "Connect to WiFi:\n'" + String(portalSSID) + "'\nto configure.";
+            display.showStatusMessage(msg.c_str());
+        });
+
+        // 3. Configure portal behavior
+        wm.setConfigPortalTimeout(180); 
+        wm.addParameter(&custom_ntp);
+        wm.addParameter(&custom_tz);
+
+        Serial.println("Starting Manual Setup Portal...");
+        
+        if (!wm.startConfigPortal(portalSSID)) {
+            Serial.println("Portal Timeout - Continuing...");
+        } else {
+            // Save parameters only if the user finished the portal
+            display.showStatusMessage("Settings Saved.\nRestarting...");
+            config.save(custom_ntp.getValue(), custom_tz.getValue());
+            delay(3000);
+            ESP.restart();
+        }
+    }
+
+    void resetWiFi() {
+
+        WiFiManager wm;
+        wm.resetSettings();
+        Serial.println("WiFi Credentials Wiped.");
     }
 
     void disconnectWiFi() {
@@ -32,14 +77,21 @@ struct NetworkModule {
         Serial.println("WiFi turned OFF to save battery.");
     }
 
-    void syncNTP(const char* ssid, const char* password) {
-        if (connectWiFi(ssid, password)) {
+    void syncNTP() {
+        if (connectWiFi()) {
             Serial.println("Syncing time...");
-            configTzTime("IST-2IDT,M3.5.5/2,M10.5.0/2", "pool.ntp.org", "time.google.com");
+            configTzTime(config.timezone.c_str(), config.ntpServer.c_str(), "time.google.com");
             struct tm timeinfo;
+            // Wait for time to be synced
+            int retries = 0;
             while (!getLocalTime(&timeinfo) || timeinfo.tm_year < (2026 - 1900)) {
+                if (retries > 40) break; // Timeout after 20 seconds
                 delay(500);
+                retries++;
             }
+        } else {
+            display.showStatusMessage("WiFi Connection Failed. Portal may be required.");
+            delay(5000); // Give the user 5 seconds to read the error
         }
         
         disconnectWiFi();

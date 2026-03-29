@@ -31,6 +31,7 @@ Follow these steps to get your clock running:
 4. **Install Libraries:** Go to `Sketch` > `Include Library` > `Manage Libraries` and install:
    * **GxEPD2** (by Jean-Marc Zingg)
    * **Adafruit GFX Library**
+   * **WiFiManager** (by tzapu)
 
 ### 2. Connect the Board
 1. Use a high-quality (data-capable) USB-C cable to connect your **XIAO ESP32-C3** to your computer.
@@ -41,16 +42,21 @@ Follow these steps to get your clock running:
 1. Clone or download this repository to your local machine.
 2. Open the `HebrewClock.ino` file in your Arduino IDE.
 
-### 4. Set Up WiFi (Private Settings)
-1. Locate the file `arduino_private_example.h` in the project folder.
-2. **Rename** it to `arduino_private.h`.
-3. Open the file and enter your WiFi details:
-   ```cpp
-   #define SECRET_SSID "Your_WiFi_Name"
-   #define SECRET_PASS "Your_WiFi_Password"
-   ```
+### 4. WiFi Configuration & Setup
+The HebrewClock no longer requires hardcoded WiFi credentials! 
 
-### 5. Uploading New Code (Battery Safety Window)
+1. **First Boot:** When you first turn on the clock, it will display a message asking you to connect to the **'HebrewClock-Setup'** WiFi network.
+2. **Configure:** Connect to this network using your smartphone. A setup page should appear automatically (Captive Portal).
+3. **Save Settings:** Select your home WiFi, enter the password, and optionally configure the NTP server and Timezone.
+4. **Reboot:** The clock will save these settings permanently and restart.
+
+### 5. Factory Reset (WiFi Reset)
+If you change your router or want to reset the clock to factory settings:
+1. **Hold the BOOT button** (GPIO 9) on the XIAO board for **5 seconds** immediately after powering on.
+2. The screen will display a "Resetting Settings..." message.
+3. The clock will return to Step 4 (Setup Mode).
+
+### 6. Uploading New Code (Battery Safety Window)
 Because the clock uses **Light Sleep** to save battery, the USB port "disappears" when it is sleeping.
 1. Click the **Upload** button in the Arduino IDE.
 2. Press the physical **Reset (R)** button on the board. The clock will stay "awake" for **60 seconds** before falling back into sleep mode. This gives you a 1-minute window to successfully upload your code.
