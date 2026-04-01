@@ -6,6 +6,7 @@
 #include "config.h"
 #include "display.h"
 #include "time.h"
+#include <esp_sntp.h>
 
 struct NetworkModule {
 
@@ -80,12 +81,18 @@ struct NetworkModule {
     void syncNTP() {
         if (connectWiFi()) {
             Serial.println("Syncing time...");
+            sntp_set_sync_status(SNTP_SYNC_STATUS_RESET);
             configTzTime(config.timezone.c_str(), config.ntpServer.c_str(), "time.google.com");
             struct tm timeinfo;
-            // Wait for time to be synced
+            // Wait for time to be synced via NTP status or year check
             int retries = 0;
-            while (!getLocalTime(&timeinfo) || timeinfo.tm_year < (2026 - 1900)) {
-                if (retries > 40) break; // Timeout after 20 seconds
+            while (sntp_get_sync_status() != SNTP_SYNC_STATUS_COMPLETED) {
+                if (retries > 40) {
+                    Serial.println("Time Sync Failed via NTP!");
+                    display.showStatusMessage("Time Sync Failed.\nRetrying later...");
+                    delay(30000);
+                    break; // Timeout after 20 seconds
+                }
                 delay(500);
                 retries++;
             }
