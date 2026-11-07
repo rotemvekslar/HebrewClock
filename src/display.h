@@ -11,8 +11,11 @@ struct DisplayModule {
     static const int Y_SPACING = SRC_IMG_H - 10; 
     static const int GAP = 20;                   
 
-    // Initialize the 7.5 inch UC8179 E-Ink Display via GxEPD2
-    GxEPD2_BW<GxEPD2_750_GDEY075T7, GxEPD2_750_GDEY075T7::HEIGHT> epaper = GxEPD2_750_GDEY075T7(/*CS=*/ D1, /*DC=*/ D3, /*RST=*/ D0, /*BUSY=*/ D2);
+    // Initialize the 7.5 inch UC8179 E-Ink Display via GxEPD2.
+    // Uses the GDEW075T7 driver (GxEPD2_750_T7) rather than GxEPD2_750_GDEY075T7: its full refresh
+    // uses the panel's real temperature, which is the only waveform that still gives a clean image
+    // on our panel. GDEY075T7's full refresh forces 90°C and now leaves the screen faded/white.
+    GxEPD2_BW<GxEPD2_750_T7, GxEPD2_750_T7::HEIGHT> epaper = GxEPD2_750_T7(/*CS=*/ D1, /*DC=*/ D3, /*RST=*/ D0, /*BUSY=*/ D2);
 
     const unsigned char* all_words[15];
     size_t word_sizes[15]; 
@@ -111,6 +114,7 @@ struct DisplayModule {
         }
         
         epaper.display(true); // Always partial for speed
+        epaper.powerOff();    // GxEPD2 leaves panel voltages on after a partial refresh
     }
 
 

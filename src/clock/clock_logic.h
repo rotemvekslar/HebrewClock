@@ -137,7 +137,12 @@ struct ClockLogicModule {
 
         
         display.renderAllWords();
-        display.epaper.display(!fullRefresh); 
+        // Always a full refresh: every partial-refresh waveform leaves faded areas and
+        // stripes on our panel, so we accept a short flash each minute for a sharp image.
+        // (fullRefresh parameter is kept but no longer needed.)
+        display.epaper.display(false);
+        // GxEPD2 already powers off after a full refresh; kept explicit for safety.
+        display.epaper.powerOff();
     }
 
     void updateTimeAndDisplay() {
